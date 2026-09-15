@@ -1,0 +1,88 @@
+--- a/editor.html
++++ b/editor.html
+@@ -869,6 +869,28 @@
+ .tiptap .trinote-math-nodeview { display: inline-block; max-width: 100%; vertical-align: middle; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+ .tiptap .trinote-math-nodeview--display { display: block; margin: 0.75em 0; text-align: center; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+ .tiptap .trinote-math-nodeview:hover { outline: 1px solid var(--btn-active); outline-offset: 2px; border-radius: 3px; }
++
++/* CLOVER: one-line collapsible toolbar. Everything (Undo/Redo included) lives in the scrollable strip.
++   Layout: [spacer][toggle][strip]. Collapsed: the spacer grows so the lone toggle sits at the far right
++   and the strip is width 0. Expanded: the spacer shrinks to 0, the toggle glides to the far left and the
++   strip unrolls to its right. flex-grow and max-width are both animated, so it is one continuous motion. */
++#toolbar-wrap { display: flex; flex-wrap: wrap; align-items: stretch; }
++#toolbar-wrap > .table-context-bar { flex: 1 0 100%; }   /* the table bar keeps its own full row above the strip */
++.clover-spacer { flex: 0 1 0px; transition: flex-grow 0.25s ease; }
++#toolbar-wrap.clover-collapsed .clover-spacer { flex-grow: 1; }
++#toolbar-wrap > #toolbar { flex: 1 1 0px; min-width: 0; max-width: 100%; opacity: 1; transition: max-width 0.25s ease, opacity 0.2s ease, padding 0.25s ease; }   /* CLOVER: basis 0 — with basis:auto the strip's content width made it wrap onto its own line under flex-wrap */
++#toolbar-wrap.clover-collapsed > #toolbar { flex-grow: 0; max-width: 0; opacity: 0; overflow: hidden; padding-left: 0; padding-right: 0; pointer-events: none; }
++.clover-pin { flex: 0 0 auto; overflow: visible; }
++#toolbar-wrap { border-top: none; }   /* CLOVER: no hairline above the toolbar row */
++.clover-expander {
++  width: 30px; height: 30px; padding: 0; border-radius: 15px;
++  display: flex; align-items: center; justify-content: center;
++  background: rgba(128,128,128,0.12);
++}
++.clover-expander:active { background: rgba(128,128,128,0.24); }
++.clover-expander svg, .clover-expander img { width: 16px; height: 16px; transition: transform 0.25s ease; }
++#toolbar-wrap:not(.clover-collapsed) .clover-expander svg,
++#toolbar-wrap:not(.clover-collapsed) .clover-expander img { transform: rotate(180deg); }
+ </style>
+ <link rel="stylesheet" href="vendor/katex/katex.min.css">
+ <script src="vendor/katex/katex.min.js"></script>
+@@ -5030,7 +5052,7 @@
+ // Show editor, hide loading
+ document.getElementById('loading').style.display = 'none';
+ document.getElementById('editor').style.display = 'block';
+-document.getElementById('toolbar-wrap').style.display = 'block';
++document.getElementById('toolbar-wrap').style.display = 'flex'; /* CLOVER: inline 'block' beat the flex row — the toggle and the strip stacked into two rows */
+ initToolbarSwapButton();
+ updateToolbarState();
+ 
+@@ -6455,5 +6477,47 @@
+   }
+ } catch (e) {}
+ </script>
++<script>
++/* CLOVER: one-line collapsible toolbar — see the CLOVER CSS block. The toggle is the only chrome in the
++   collapsed state (far right); expanding slides it to the far left and unrolls the full strip, Undo/Redo
++   first. Undo/Redo stay ordinary #toolbar buttons, so the active-state refresh keeps handling them. */
++(function () {
++  try {
++    const wrap = document.getElementById('toolbar-wrap');
++    const bar = document.getElementById('toolbar');
++    if (!wrap || !bar) return;
++    // Core state first — even if anything below throws, the bar starts collapsed with a visible toggle.
++    const spacer = document.createElement('div');
++    spacer.className = 'clover-spacer';
++    const pin = document.createElement('div');
++    pin.className = 'toolbar clover-pin';
++    const x = document.createElement('button');
++    x.type = 'button';
++    x.className = 'clover-expander';
++    x.title = 'More';
++    x._isActive = () => false;
++    x.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="12.5 17 7.5 12 12.5 7"/><polyline points="18 17 13 12 18 7"/></svg>';
++    x.addEventListener('click', (e) => { e.preventDefault(); wrap.classList.toggle('clover-collapsed'); });
++    pin.appendChild(x);
++    wrap.insertBefore(pin, bar);
++    wrap.insertBefore(spacer, pin);
++    wrap.classList.add('clover-collapsed');
++    // Undo/Redo become the first tools of the strip.
++    const lead = Array.from(bar.querySelectorAll('button')).filter(b => b.title === 'Undo' || b.title === 'Redo');
++    for (const b of lead.reverse()) bar.insertBefore(b, bar.firstChild);
++    // Custom artwork: drop clover-toggle.svg (or .png) next to editor.html to replace the built-in icon.
++    (function tryCustomIcon(names) {
++      if (!names.length) return;
++      const img = new Image();
++      img.onload = () => { x.textContent = ''; x.appendChild(img); };
++      img.onerror = () => tryCustomIcon(names.slice(1));
++      img.alt = '';
++      img.src = names[0];
++    })(['clover-toggle.svg', 'clover-toggle.png']);
++  } catch (e) {
++    try { window.webkit.messageHandlers.debugLog.postMessage('CLOVER toolbar init failed: ' + (e && e.message ? e.message : e)); } catch (_) {}
++  }
++})();
++</script>
+ </body>
+ </html>

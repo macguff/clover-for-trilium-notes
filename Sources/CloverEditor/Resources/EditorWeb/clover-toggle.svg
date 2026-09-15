@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+  <!-- Clover toolbar toggle: brand-teal double chevron with a landing dot; legible on light and dark chips. -->
+  <defs>
+    <linearGradient id="cg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#2E8C7F"/>
+      <stop offset="1" stop-color="#1E6E66"/>
+    </linearGradient>
+  </defs>
+  <g fill="none" stroke="url(#cg)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+    <polyline points="12.5 17 7.5 12 12.5 7"/>
+    <polyline points="18.5 17 13.5 12 18.5 7"/>
+  </g>
+  <circle cx="5" cy="12" r="1.4" fill="#2E8C7F"/>
+</svg>
